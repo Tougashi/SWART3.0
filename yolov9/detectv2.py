@@ -5,7 +5,15 @@ import sys
 from pathlib import Path
 
 import torch
-import RPi.GPIO as GPIO
+
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    import sys
+    import FakeRPi
+    import FakeRPi.GPIO as GPIO
+    sys.modules['RPi'] = FakeRPi
+    sys.modules['RPi.GPIO'] = GPIO
 from gpiozero import Servo
 from gpiozero.pins.pigpio import PiGPIOFactory
 import time
