@@ -1,0 +1,7 @@
+path: d:/Farid2/Project/SWART3.0/dataset_clean
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 6
+names: ['electronics', 'glass', 'metal', 'organic', 'paper', 'plastic']

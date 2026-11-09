@@ -25,6 +25,63 @@ FALLBACK_NAMES = {0: 'electronics', 1: 'glass', 2: 'metal', 3: 'organic', 4: 'pa
 
 
 # ----------------------------------------------------------------------------
+# Referensi bak kosong: simpan mean + std warna untuk mendeteksi 'foreground'
+# (dipakai oleh calibrate.py dan eval_empty_fp.py)
+# ----------------------------------------------------------------------------
+class EmptyReference:
+    """Referensi bak kosong: simpan mean + std warna untuk mendeteksi foreground."""
+
+    def __init__(self, mean, std, roi_mask=None):
+        self.mean = mean.astype(np.float32)
+        self.std = std.astype(np.float32)
+        self.roi_mask = roi_mask
+
+    @classmethod
+    def from_frames(cls, frames, roi_mask=None):
+        stack = np.stack([f.astype(np.float32) for f in frames], axis=0)
+        mean = stack.mean(axis=0)
+        std = stack.std(axis=0).clip(min=5.0)
+        return cls(mean, std, roi_mask)
+
+    def foreground(self, frame, z_thr=3.0):
+        diff = np.abs(frame.astype(np.float32) - self.mean) / self.std
+        fg = (diff.max(axis=2) > z_thr).astype(np.uint8) * 255
+        if self.roi_mask is not None:
+            fg = cv2.bitwise_and(fg, self.roi_mask)
+        return fg, (fg > 0).sum() / max(fg.size, 1)
+
+    def center_in_roi(self, box, shape):
+        if self.roi_mask is None:
+            return True
+        x1, y1, x2, y2 = box
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        h, w = shape[:2]
+        return bool(self.roi_mask[min(cy, h - 1), min(cx, w - 1)] > 0)
+
+    def box_change(self, fg_mask, box, shape, margin=5):
+        x1, y1, x2, y2 = box
+        h, w = shape[:2]
+        x1, y1 = max(0, x1 - margin), max(0, y1 - margin)
+        x2, y2 = min(w, x2 + margin), min(h, y2 + margin)
+        region = fg_mask[y1:y2, x1:x2]
+        if region.size == 0:
+            return 0.0
+        return float((region > 0).sum()) / region.size
+
+    def save(self, path):
+        data = {'mean': self.mean, 'std': self.std}
+        if self.roi_mask is not None:
+            data['roi_mask'] = self.roi_mask
+        np.savez_compressed(str(path), **data)
+
+    @classmethod
+    def load(cls, path):
+        d = np.load(str(path))
+        roi = d['roi_mask'] if 'roi_mask' in d else None
+        return cls(d['mean'], d['std'], roi)
+
+
+# ----------------------------------------------------------------------------
 # Kamera: thread khusus, selalu menyimpan frame TERBARU (tidak ada antrean/backlog)
 # ----------------------------------------------------------------------------
 class CameraStream:

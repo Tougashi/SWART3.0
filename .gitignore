@@ -1,0 +1,46 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Datasets
+dataset_raw/
+dataset_clean/
+dataset_empty/
+dataset_empty_test/
+*.cache
+
+# Dataset processing intermediate & caches
+group_hashes_cache.npz
+split_manifest.csv
+leak_*.csv
+
+# Training outputs and runs
+runs/
+
+# Compressed archives
+*.rar
+*.zip
+*.7z
+*.tar*
+*.gz
+
+# Large weights and checkpoints
+*.pt
+*.onnx
+!weights/best2_main.onnx
+!weights/best_main.onnx
+
+# System & Editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
